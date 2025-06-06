@@ -51,15 +51,47 @@ $(document).ready(function (){
 
 	}); //end reset
 
-	//Fullscreen
-	$(".fullScreen").on("click", function(){
-		document.fullScreenElement && null !== document.fullScreenElement || !document.mozFullScreen && !document.webkitIsFullScreen ? document.documentElement.requestFullScreen ? document.documentElement.requestFullScreen() : document.documentElement.mozRequestFullScreen ? document.documentElement.mozRequestFullScreen() : document.documentElement.webkitRequestFullScreen && document.documentElement.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT) : document.cancelFullScreen ? document.cancelFullScreen() : document.mozCancelFullScreen ? document.mozCancelFullScreen() : document.webkitCancelFullScreen && document.webkitCancelFullScreen();
+        // Fullscreen
+        $("#c_fullScreen").on("click", function(){
+                document.fullScreenElement && null !== document.fullScreenElement || !document.mozFullScreen && !document.webkitIsFullScreen ? document.documentElement.requestFullScreen ? document.documentElement.requestFullScreen() : document.documentElement.mozRequestFullScreen ? document.documentElement.mozRequestFullScreen() : document.documentElement.webkitRequestFullScreen && document.documentElement.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT) : document.cancelFullScreen ? document.cancelFullScreen() : document.mozCancelFullScreen ? document.mozCancelFullScreen() : document.webkitCancelFullScreen && document.webkitCancelFullScreen();
 
+                if($(this).hasClass('fullScreen')){
+                        $(this).removeClass('fullScreen').addClass('normalScreen');
+                        $(this).find('img').attr('src','./imgs/normalsize.png');
+                } else {
+                        $(this).removeClass('normalScreen').addClass('fullScreen');
+                        $(this).find('img').attr('src','./imgs/fullsize.png');
+                }
 
-		//grid-template-columns: repeat(24, 3em [col-start]);
-		//width: 100%;
+                //grid-template-columns: repeat(24, 3em [col-start]);
+                //width: 100%;
 
-	});//end fullscreen
+        });//end fullscreen
+
+        $("#c_fullScreen").on('mouseenter', function(){
+                if($(this).hasClass('fullScreen')){
+                        $(this).find('img').attr('src','./imgs/fullsize_hover.png');
+                } else {
+                        $(this).find('img').attr('src','./imgs/normalsize_hover.png');
+                }
+        }).on('mouseleave', function(){
+                if($(this).hasClass('fullScreen')){
+                        $(this).find('img').attr('src','./imgs/fullsize.png');
+                } else {
+                        $(this).find('img').attr('src','./imgs/normalsize.png');
+                }
+        });
+
+        $(document).on('fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange', function(){
+                var fsElement = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+                if(fsElement){
+                        $("#c_fullScreen").removeClass('fullScreen').addClass('normalScreen');
+                        $("#c_fullScreen img").attr('src','./imgs/normalsize.png');
+                } else {
+                        $("#c_fullScreen").removeClass('normalScreen').addClass('fullScreen');
+                        $("#c_fullScreen img").attr('src','./imgs/fullsize.png');
+                }
+        });
 
 
 	$('#content').on('mousemove', showAllEvent);
