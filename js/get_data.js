@@ -6,7 +6,23 @@ function parseData(html) {
     const li = $(this);
     const rawText = li.text().replace(/\s+/g, ' ').trim();
 
-    const paese = li.find('strong').first().text().trim();
+    const paeseEl = li.find('strong').first();
+    const paese = paeseEl.text().trim();
+    const spanEl = li.find('span').first();
+
+    // testo tra <strong> e <span>
+    let regione = '';
+    if (paeseEl.length && spanEl.length) {
+      let node = paeseEl[0].nextSibling;
+      while (node && node !== spanEl[0]) {
+        if (node.nodeType === 3) regione += node.textContent;
+        else regione += $(node).text();
+        node = node.nextSibling;
+      }
+      regione = regione.replace(/\s+/g, ' ').trim();
+    }
+
+    const localita = spanEl.text().trim();
 
     // Estrarre struttura e stelle
     const link = li.find('a[href*="Offerte-Viaggio"]').first();
@@ -20,6 +36,9 @@ function parseData(html) {
       struttura = struttura.replace(/\*{1,5}/, '').trim();
     }
 
+    const acronimiGenerici = [...new Set(rawText.match(/\b(TFR|CP)\b/g) || [])];
+    const codiceAeroporto = (rawText.match(/\b(VRN|BGY|MXP)\b/) || [])[0] || '';
+
     // Cerca tutte le partenze e prezzi
     const offerta = [];
     const matches = [...rawText.matchAll(/il\s+(\d{2}\s\w+)\s+(da\s+[A-Z]+|senza trasporto).*?€\s*([\d\.]+)/gi)];
@@ -30,14 +49,16 @@ function parseData(html) {
 
       offerta.push({
         paese,
-        regione: '', // se vorrai potrai mapparla
+        regione,
         struttura,
         stelle,
-        localita: '', // può essere estratta da URL o testo se necessario
+        localita,
         durata,
         data_partenza: m[1],
         trasporto: m[2].toLowerCase().includes('senza') ? 'non incl' : 'incl',
-        prezzo: parseFloat(m[3].replace('.', ''))
+        prezzo: parseFloat(m[3].replace('.', '')),
+        acronimi: acronimiGenerici.join(','),
+        aeroporto: codiceAeroporto
       });
     }
 
@@ -61,7 +82,32 @@ $(document).ready(function () {
     const thead = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
     const tbody = `<tbody>${parsedResults.map(r => `<tr>${headers.map(h => `<td>${r[h]}</td>`).join('')}</tr>`).join('')}</tbody>`;
     $('#results').html(thead + tbody);
-    table = $('#results').DataTable();
+
+    // prepara dropdown di filtro per regione
+    const regioni = [...new Set(parsedResults.map(r => r.regione))].filter(r => r);
+    $('#filterDropdown').html(regioni.map(r => `<label><input type="checkbox" class="filterCheckbox" value="${r}" checked> ${r}</label>`).join(''));
+
+    const regioneIndex = headers.indexOf('regione');
+    if (window._regioneFilter) {
+      const idx = $.fn.dataTable.ext.search.indexOf(window._regioneFilter);
+      if (idx !== -1) $.fn.dataTable.ext.search.splice(idx, 1);
+    }
+    window._regioneFilter = function(settings, data) {
+      const selected = $('.filterCheckbox:checked').map(function(){return this.value;}).get();
+      if (!selected.length) return true;
+      return selected.includes(data[regioneIndex]);
+    };
+    $.fn.dataTable.ext.search.push(window._regioneFilter);
+
+    table = $('#results').DataTable({ pageLength: 200 });
+  });
+
+  $('#filterToggle').click(function () {
+    $('#filterContainer').toggleClass('show');
+  });
+
+  $(document).on('change', '.filterCheckbox', function () {
+    if (table) table.draw();
   });
 
   $('#uploadBtn').click(function () {
