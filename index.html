@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Parser Offerte Viaggi</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    textarea { width: 100%; height: 200px; margin-bottom: 10px; }
+    button { margin-right: 10px; padding: 10px 20px; }
+    table { margin-top: 20px; width: 100%; border-collapse: collapse; }
+  </style>
+</head>
+<body>
+  <h2>Parser Offerte Viaggi</h2>
+  <textarea id="inputText" placeholder="Inserisci testo o URL..."></textarea><br>
+  <button id="parseBtn">Get Data</button>
+  <button id="uploadBtn">Upload to DB</button>
+  <table id="results" class="display"></table>
+
+<script>
+function parseData(html) {
+  const $html = $('<div>' + html + '</div>');
+  const results = [];
+
+  $html.find('li').each(function () {
+    const li = $(this);
+    const rawText = li.text().replace(/\\s+/g, ' ').trim();
+
+    const paese = li.find('strong').first().text().trim();
+
+    // Estrarre struttura e stelle
+    const link = li.find('a[href*="Offerte-Viaggio"]').first();
+    let struttura = link.length ? link.text().trim() : '';
+    let stelle = null;
+
+    // Cerca stelle nel testo, anche se non parte del link
+    const matchStelle = struttura.match(/\\*{1,5}/) || li.text().match(/\\*{1,5}/);
+    if (matchStelle) {
+      stelle = matchStelle[0].length;
+      struttura = struttura.replace(/\\*{1,5}/, '').trim();
+    }
+
+    // Cerca tutte le partenze e prezzi
+    const offerta = [];
+    const matches = [...rawText.matchAll(/il\\s+(\\d{2}\\s\\w+)\\s+(da\\s+[A-Z]+|senza trasporto).*?€\\s*([\\d\\.]+)/gi)];
+
+    for (const m of matches) {
+      const durataMatch = rawText.match(/(\\d+)\\s+(giorni|notti)/i);
+      const durata = durataMatch ? parseInt(durataMatch[1]) : null;
+
+      offerta.push({
+        paese,
+        regione: '', // se vorrai potrai mapparla
+        struttura,
+        stelle,
+        localita: '', // può essere estratta da URL o testo se necessario
+        durata,
+        data_partenza: m[1],
+        trasporto: m[2].toLowerCase().includes('senza') ? 'non incl' : 'incl',
+        prezzo: parseFloat(m[3].replace('.', ''))
+      });
+    }
+
+    results.push(...offerta);
+  });
+
+  return results;
+}
+
+
+
+$(document).ready(function () {
+  let table;
+  let parsedResults = [];
+
+  $('#parseBtn').click(function () {
+    const text = $('#inputText').val();
+    parsedResults = parseData(text);
+    if (table) table.destroy();
+    $('#results').empty();
+
+    const headers = Object.keys(parsedResults[0] || {});
+    const thead = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
+    const tbody = `<tbody>${parsedResults.map(r => `<tr>${headers.map(h => `<td>${r[h]}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    $('#results').html(thead + tbody);
+    table = $('#results').DataTable();
+  });
+
+  $('#uploadBtn').click(function () {
+    if (parsedResults.length === 0) return alert("Nessun dato da caricare.");
+    $.ajax({
+      url: '/upload', // endpoint server
+      method: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(parsedResults),
+      success: res => alert("Dati caricati con successo!"),
+      error: err => alert("Errore durante il caricamento.")
+    });
+  });
+});
+</script>
+</body>
+</html>
