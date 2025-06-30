@@ -71,6 +71,62 @@ function parseData(html) {
 $(document).ready(function () {
   let table;
   let parsedResults = [];
+  let columnFilters = {};
+
+  function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function applyColumnFilters() {
+    table.columns().every(function (idx) {
+      const selected = columnFilters[idx];
+      const column = table.column(idx);
+      if (!selected || selected.length === 0 || selected.length === column.data().unique().length) {
+        column.search('');
+      } else {
+        const regex = '^(' + selected.map(escapeRegex).join('|') + ')$';
+        column.search(regex, true, false);
+      }
+    });
+    table.draw();
+  }
+
+  function setupColumnFilterHandlers() {
+    $('#results thead th').each(function(i){
+      const th = $(this);
+      th.off('click').on('click', function(e){
+        e.stopPropagation();
+        $('.column-filter-dropdown').remove();
+        $('th').removeClass('show-filter');
+        const column = table.column(i);
+        const values = column.data().unique().sort();
+        const dropdown = $('<div class="column-filter-dropdown"></div>');
+        dropdown.append('<div class="filter-actions"><span class="select-all">Seleziona tutto</span> <span class="deselect-all">Deseleziona tutto</span></div>');
+        values.each(function(v){
+          const checked = !columnFilters[i] || columnFilters[i].includes(v);
+          dropdown.append(`<label><input type="checkbox" value="${v}" ${checked ? 'checked' : ''}> ${v}</label>`);
+        });
+        th.addClass('show-filter').append(dropdown);
+
+        dropdown.on('click', '.select-all', function(){
+          dropdown.find('input').prop('checked', true).trigger('change');
+        });
+        dropdown.on('click', '.deselect-all', function(){
+          dropdown.find('input').prop('checked', false).trigger('change');
+        });
+        dropdown.on('change', 'input', function(){
+          const selected = dropdown.find('input:checked').map(function(){ return this.value; }).get();
+          columnFilters[i] = selected;
+          applyColumnFilters();
+        });
+
+        $(document).one('click', function(){
+          dropdown.remove();
+          th.removeClass('show-filter');
+        });
+      });
+    });
+  }
 
   $('#parseBtn').click(function () {
     const text = $('#inputText').val();
@@ -100,6 +156,9 @@ $(document).ready(function () {
     $.fn.dataTable.ext.search.push(window._regioneFilter);
 
     table = $('#results').DataTable({ pageLength: 200 });
+    columnFilters = {};
+    setupColumnFilterHandlers();
+    applyColumnFilters();
   });
 
   $('#filterToggle').click(function () {

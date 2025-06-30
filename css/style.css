@@ -14,3 +14,27 @@ table { margin-top: 20px; width: 100%; border-collapse: collapse; }
 }
 #filterContainer.show #filterDropdown { display: block; }
 label { display: block; }
+
+table thead th { position: relative; cursor: pointer; }
+.column-filter-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 10px;
+  z-index: 200;
+  max-height: 200px;
+  overflow-y: auto;
+}
+th.show-filter .column-filter-dropdown { display: block; }
+.column-filter-dropdown .filter-actions {
+  margin-bottom: 5px;
+}
+.column-filter-dropdown .filter-actions span {
+  cursor: pointer;
+  margin-right: 10px;
+  color: blue;
+  text-decoration: underline;
+}
