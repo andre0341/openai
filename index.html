@@ -9,16 +9,38 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <h2>Parser Offerte Viaggi</h2>
-  <textarea id="inputText" placeholder="Inserisci testo o URL..."></textarea><br>
-  <button id="parseBtn">Get Data</button>
-  <button id="uploadBtn">Upload to DB</button>
-  <div id="filterContainer">
-    <button id="filterToggle">Filter</button>
-    <div id="filterDropdown"></div>
-  </div>
-  <table id="results" class="display"></table>
+  <header>
+    <div class="title">
+      <span class="logo">✈️</span>
+      <div>
+        <h1>Caesar Tour Deals</h1>
+        <p>Last Second Offers Tracker</p>
+      </div>
+    </div>
+    <div class="actions">
+      <span id="lastUpdated">Last updated: -</span>
+      <button id="refreshBtn">Refresh Data</button>
+    </div>
+  </header>
 
-<script src="js/get_data.js"></script>
+  <main>
+    <aside id="sidebar">
+      <h2>Search &amp; Filters</h2>
+      <input type="text" id="searchInput" placeholder="Search offers">
+      <div id="filterContainer">
+        <button id="filterToggle">Filter Regions</button>
+        <div id="filterDropdown"></div>
+      </div>
+    </aside>
+
+    <section id="content">
+      <textarea id="inputText" placeholder="Inserisci testo HTML..."></textarea><br>
+      <button id="parseBtn">Parse Data</button>
+      <button id="uploadBtn">Upload to DB</button>
+      <table id="results" class="display"></table>
+    </section>
+  </main>
+
+  <script src="js/get_data.js"></script>
 </body>
 </html>

@@ -1,58 +1,41 @@
 function parseData(html) {
-  const $html = $('<div>' + html + '</div>');
+  const doc = new DOMParser().parseFromString(html, 'text/html');
   const results = [];
 
-  $html.find('li').each(function () {
-    const li = $(this);
-    const rawText = li.text().replace(/\s+/g, ' ').trim();
+  doc.querySelectorAll('#lastsecond li').forEach(li => {
+    if (li.querySelector('a.tornaSu')) return;
 
-    const paeseEl = li.find('strong').first();
-    const paese = paeseEl.text().trim();
-    const spanEl = li.find('span').first();
+    const rawText = li.textContent.replace(/\s+/g, ' ').trim();
 
-    // testo tra <strong> e <span>
-    let regione = '';
-    if (paeseEl.length && spanEl.length) {
-      let node = paeseEl[0].nextSibling;
-      while (node && node !== spanEl[0]) {
-        if (node.nodeType === 3) regione += node.textContent;
-        else regione += $(node).text();
-        node = node.nextSibling;
-      }
-      regione = regione.replace(/\s+/g, ' ').trim();
-    }
+    const h4s = li.querySelectorAll('h4');
+    const paese = h4s[0] ? h4s[0].textContent.trim() : '';
+    const regione = h4s[1] ? h4s[1].textContent.trim() : '';
 
-    const localita = spanEl.text().trim();
-
-    // Estrarre struttura e stelle
-    const link = li.find('a[href*="Offerte-Viaggio"]').first();
-    let struttura = link.length ? link.text().trim() : '';
+    const link = li.querySelector('a[href*="Offerte-Viaggio"]');
+    let struttura = link ? link.textContent.trim() : '';
     let stelle = null;
 
-    // Cerca stelle nel testo, anche se non parte del link
-    const matchStelle = struttura.match(/\*{1,5}/) || li.text().match(/\*{1,5}/);
+    const matchStelle = struttura.match(/\*{1,5}/) || rawText.match(/\*{1,5}/);
     if (matchStelle) {
       stelle = matchStelle[0].length;
       struttura = struttura.replace(/\*{1,5}/, '').trim();
     }
 
-    const acronimiGenerici = [...new Set(rawText.match(/\b(TFR|CP)\b/g) || [])];
+    const acronimiGenerici = [...new Set((rawText.match(/\b(TFR|CP)\b/gi) || []).map(a => a.toUpperCase()))];
     const codiceAeroporto = (rawText.match(/\b(VRN|BGY|MXP)\b/) || [])[0] || '';
 
-    // Cerca tutte le partenze e prezzi
-    const offerta = [];
-    const matches = [...rawText.matchAll(/il\s+(\d{2}\s\w+)\s+(da\s+[A-Z]+|senza trasporto).*?€\s*([\d\.]+)/gi)];
+    const durataMatch = rawText.match(/(\d+)\s+(giorni|notti)/i);
+    const durata = durataMatch ? parseInt(durataMatch[1]) : null;
+
+    const matches = [...rawText.matchAll(/il\s+(\d{1,2}\s\w+)\s+(da\s+[A-Z]+|senza trasporto).*?€\s*([\d\.]+)/gi)];
 
     for (const m of matches) {
-      const durataMatch = rawText.match(/(\d+)\s+(giorni|notti)/i);
-      const durata = durataMatch ? parseInt(durataMatch[1]) : null;
-
-      offerta.push({
+      results.push({
         paese,
         regione,
         struttura,
         stelle,
-        localita,
+        localita: struttura,
         durata,
         data_partenza: m[1],
         trasporto: m[2].toLowerCase().includes('senza') ? 'non incl' : 'incl',
@@ -61,8 +44,6 @@ function parseData(html) {
         aeroporto: codiceAeroporto
       });
     }
-
-    results.push(...offerta);
   });
 
   return results;
@@ -159,6 +140,15 @@ $(document).ready(function () {
     columnFilters = {};
     setupColumnFilterHandlers();
     applyColumnFilters();
+    $('#lastUpdated').text('Last updated: ' + new Date().toLocaleString());
+  });
+
+  $('#refreshBtn').click(function(){
+    $('#parseBtn').click();
+  });
+
+  $('#searchInput').on('keyup', function(){
+    if (table) table.search(this.value).draw();
   });
 
   $('#filterToggle').click(function () {
